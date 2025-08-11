@@ -1,0 +1,15 @@
+import React from "react";
+import { IconButton } from "@mui/material";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import { motion } from "framer-motion";
+
+export default function ThemeToggle({ mode, setMode }) {
+  return (
+    <motion.div whileTap={{ scale: 0.9 }} style={{ display: "inline-block", marginRight: 12 }}>
+      <IconButton onClick={() => setMode(mode === "light" ? "dark" : "light")} color="inherit">
+        {mode === "light" ? <DarkModeIcon /> : <LightModeIcon />}
+      </IconButton>
+    </motion.div>
+  );
+}
