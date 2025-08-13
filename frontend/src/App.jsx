@@ -1,4 +1,4 @@
-import {useMemo, useState } from "react";
+import React, {useMemo, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider, CssBaseline, Container } from "@mui/material";
 import { getAppTheme } from "./styles/theme";
@@ -8,7 +8,8 @@ const RepoExplorer = React.lazy(() => import("./pages/RepoExplorer"));
 import SummaryList from "./pages/SummaryList";
 import CodePreview from "./pages/CodePreview";
 import { AnimatePresence, motion } from "framer-motion";
-import ProtectedRoute from "./components/ProtectedRoute"; 
+const ProtectedRoute = React.lazy(() => import("./components/ProtectedRoute.jsx") );
+// import ProtectedRoute from "./components/ProtectedRoute"; 
 
 export default function App() {
   const [mode, setMode] = useState(localStorage.getItem("theme") || "light");
