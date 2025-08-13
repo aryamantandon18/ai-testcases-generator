@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { Box, CircularProgress } from "@mui/material";
 
-export default function ProtectedRoute({ children }) {
+const ProtectedRoute = ({ children }) => {
   const { token,loading } = useContext(AuthContext);
     if (loading) {
     return (
@@ -18,3 +18,5 @@ export default function ProtectedRoute({ children }) {
   }
   return children;
 }
+
+export default ProtectedRoute;
