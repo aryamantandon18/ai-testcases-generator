@@ -1,5 +1,5 @@
-import React, { useContext, useMemo, useState } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import {useMemo, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import { ThemeProvider, CssBaseline, Container } from "@mui/material";
 import { getAppTheme } from "./styles/theme";
 import Header from "./components/Header";
@@ -7,7 +7,6 @@ import Login from "./pages/Login";
 import RepoExplorer from "./pages/RepoExplorer";
 import SummaryList from "./pages/SummaryList";
 import CodePreview from "./pages/CodePreview";
-import { AuthContext } from "./contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
 import ProtectedRoute from "./components/ProtectedRoute"; 
 
