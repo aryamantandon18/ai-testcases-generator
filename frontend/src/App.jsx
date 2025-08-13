@@ -9,7 +9,7 @@ import SummaryList from "./pages/SummaryList";
 import CodePreview from "./pages/CodePreview";
 import { AuthContext } from "./contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
-import ProtectedRoute from "./components/ProtectedRoute"; 
+import ProtectedRoute from "./components/ProtectedRoute.jsx"; 
 
 export default function App() {
   const [mode, setMode] = useState(localStorage.getItem("theme") || "light");
