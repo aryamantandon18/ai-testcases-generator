@@ -9,13 +9,11 @@ import SummaryList from "./pages/SummaryList";
 import CodePreview from "./pages/CodePreview";
 import { AuthContext } from "./contexts/AuthContext";
 import { AnimatePresence, motion } from "framer-motion";
-import ProtectedRoute from "./components/ProtectedRoute.jsx"; 
+import ProtectedRoute from "./components/ProtectedRoute"; 
 
 export default function App() {
   const [mode, setMode] = useState(localStorage.getItem("theme") || "light");
   const theme = useMemo(() => getAppTheme(mode), [mode]);
-  const { token } = useContext(AuthContext);
-  const navigate = useNavigate();
 
   return (
     <ThemeProvider theme={theme}>
