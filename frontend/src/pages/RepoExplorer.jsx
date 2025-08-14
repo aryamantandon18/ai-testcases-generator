@@ -20,7 +20,8 @@ import {
   ListItemIcon,
   Checkbox,
   Snackbar,
-  Button
+  Button,
+  alpha
 } from "@mui/material";
 import {
   Refresh as RefreshIcon,
@@ -33,15 +34,16 @@ import {
   Search as SearchIcon,
   InsertDriveFile as FileIcon,
   Clear as ClearIcon,
-  ContentCopy as ContentCopyIcon
+  ContentCopy as ContentCopyIcon,
+  AutoAwesome as AutoAwesomeIcon
 } from "@mui/icons-material";
 import API, { setAuth } from "../api/api";
 import { AuthContext } from "../contexts/AuthContext";
 import FileTree from "../components/FileTree";
 import AnimatedButton from "../components/AnimatedButton";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
-// Improved RepoExplorer UI
 export default function RepoExplorer() {
   const { token } = useContext(AuthContext);
   const theme = useTheme();
@@ -64,18 +66,15 @@ export default function RepoExplorer() {
   const [searchTerm, setSearchTerm] = useState("");
   const [copySnackOpen, setCopySnackOpen] = useState(false);
 
-  // wire auth once
   useEffect(() => {
     setAuth(token);
   }, [token]);
 
-  // debounce search input so typing doesn't re-filter on every keystroke
   useEffect(() => {
     const t = setTimeout(() => setSearchTerm(searchInput.trim()), 250);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // memoized filtered file list for performance
   const filteredFiles = useMemo(() => {
     if (!searchTerm) return files;
     return files.filter((f) => f.path.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -111,7 +110,6 @@ export default function RepoExplorer() {
       setLoading(true);
       setError(null);
 
-      // fetch contents sequentially (keeps it simple, can be parallelized later)
       const contents = [];
       for (const path of selected) {
         const r = await API.get("/api/github/file", { params: { owner, repo, path, ref: branch } });
@@ -132,23 +130,19 @@ export default function RepoExplorer() {
     }
   }, [selected, owner, repo, branch, navigate]);
 
-  // helper to toggle a single selection (keeps API used by FileTree simple)
   const toggleSelect = (path) => {
     setSelected((prev) => (prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path]));
   };
 
-  // select/deselect all visible files
   const allVisibleSelected = filteredFiles.length > 0 && filteredFiles.every((f) => selected.includes(f.path));
   const toggleSelectAllVisible = () => {
     if (allVisibleSelected) {
-      // remove visible from selected
       setSelected((prev) => prev.filter((p) => !filteredFiles.some((f) => f.path === p)));
     } else {
       setSelected((prev) => Array.from(new Set([...prev, ...filteredFiles.map((f) => f.path)])));
     }
   };
 
-  // copy path helper
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -162,28 +156,62 @@ export default function RepoExplorer() {
     <Paper
       sx={{
         p: { xs: 2, md: 4 },
-        borderRadius: 3,
+        borderRadius: 4,
         boxShadow: theme.shadows[2],
         background: theme.palette.background.paper,
-        minHeight: "70vh"
+        minHeight: "70vh",
+        border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+        position: 'relative',
+        overflow: 'hidden',
+        '&:before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 6,
+          background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
+        }
       }}
     >
-      {/* header */}
+      {/* Header */}
       <Stack direction={{ xs: "column", sm: "row" }} alignItems="center" spacing={2} mb={3}>
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-            <GitHubIcon />
+          <Avatar sx={{ 
+            bgcolor: theme.palette.mode === 'dark' ? 
+              theme.palette.secondary.main : 
+              theme.palette.primary.main,
+            width: 44,
+            height: 44
+          }}>
+            <AutoAwesomeIcon />
           </Avatar>
-          <Typography variant="h5" fontWeight="700">
-            Repository Explorer
+          <Typography 
+            variant="h5" 
+            fontWeight="800"
+            sx={{
+              background: `linear-gradient(90deg, ${theme.palette.text.primary}, ${alpha(theme.palette.text.primary, 0.8)})`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}
+          >
+            AI Test Case Generator
           </Typography>
         </Stack>
 
         <Box sx={{ flex: 1 }} />
 
         <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title="Refresh values">
-            <IconButton onClick={() => { setOwner(""); setRepo(""); setBranch("main"); setFiles([]); setSelected([]); }}>
+          <Tooltip title="Reset form">
+            <IconButton 
+              onClick={() => { setOwner(""); setRepo(""); setBranch("main"); setFiles([]); setSelected([]); }}
+              color="inherit"
+              sx={{
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.primary.main, 0.1)
+                }
+              }}
+            >
               <RefreshIcon />
             </IconButton>
           </Tooltip>
@@ -193,6 +221,12 @@ export default function RepoExplorer() {
                 if (owner && repo) window.open(`https://github.com/${owner}/${repo}`, "_blank");
               }}
               disabled={!owner || !repo}
+              color="inherit"
+              sx={{
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.secondary.main, 0.1)
+                }
+              }}
             >
               <GitHubIcon />
             </IconButton>
@@ -200,22 +234,51 @@ export default function RepoExplorer() {
         </Stack>
       </Stack>
 
+      <Typography variant="subtitle1" color="text.secondary" mb={3}>
+        Select files from your GitHub repository to generate intelligent test cases automatically
+      </Typography>
+
       <Collapse in={!!error} sx={{ mb: 2 }}>
-        <Alert severity="error" onClose={() => setError(null)}>
+        <Alert 
+          severity="error" 
+          onClose={() => setError(null)}
+          sx={{ 
+            border: `1px solid ${theme.palette.error.dark}`,
+            background: alpha(theme.palette.error.main, 0.1),
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           {error}
         </Alert>
       </Collapse>
 
       <Collapse in={!!success} sx={{ mb: 2 }}>
-        <Alert severity="success" onClose={() => setSuccess(null)}>
+        <Alert 
+          severity="success" 
+          onClose={() => setSuccess(null)}
+          sx={{ 
+            border: `1px solid ${theme.palette.success.dark}`,
+            background: alpha(theme.palette.success.main, 0.1),
+            backdropFilter: 'blur(8px)'
+          }}
+        >
           {success}
         </Alert>
       </Collapse>
 
       <Grid container spacing={3} sx={{ alignItems: "stretch" }}>
-        {/* inputs */}
+        {/* Inputs */}
         <Grid item xs={12}>
-          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, background: theme.palette.background.default }}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              borderRadius: 3,
+              background: alpha(theme.palette.background.default, 0.8),
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              backdropFilter: 'blur(8px)'
+            }}
+          >
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} md={3}>
                 <TextField
@@ -224,7 +287,10 @@ export default function RepoExplorer() {
                   onChange={(e) => setOwner(e.target.value)}
                   fullWidth
                   size="small"
-                  InputProps={{ startAdornment: <GitHubIcon sx={{ mr: 1, color: "action.active" }} /> }}
+                  InputProps={{ 
+                    startAdornment: <GitHubIcon sx={{ mr: 1, color: "action.active" }} />,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
               </Grid>
 
@@ -235,7 +301,10 @@ export default function RepoExplorer() {
                   onChange={(e) => setRepo(e.target.value)}
                   fullWidth
                   size="small"
-                  InputProps={{ startAdornment: <FolderIcon sx={{ mr: 1, color: "action.active" }} /> }}
+                  InputProps={{ 
+                    startAdornment: <FolderIcon sx={{ mr: 1, color: "action.active" }} />,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
               </Grid>
 
@@ -246,7 +315,10 @@ export default function RepoExplorer() {
                   onChange={(e) => setBranch(e.target.value)}
                   fullWidth
                   size="small"
-                  InputProps={{ startAdornment: <BranchIcon sx={{ mr: 1, color: "action.active" }} /> }}
+                  InputProps={{ 
+                    startAdornment: <BranchIcon sx={{ mr: 1, color: "action.active" }} />,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
               </Grid>
 
@@ -260,6 +332,12 @@ export default function RepoExplorer() {
                   size="medium"
                   fullWidth
                   disabled={!owner || !repo}
+                  sx={{
+                    borderRadius: 2,
+                    height: '40px',
+                    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    boxShadow: `0 4px 15px ${alpha(theme.palette.primary.main, 0.2)}`
+                  }}
                 >
                   Explore
                 </AnimatedButton>
@@ -268,6 +346,11 @@ export default function RepoExplorer() {
                   variant="outlined"
                   size="medium"
                   onClick={() => { setFiles([]); setSelected([]); setSearchInput(""); }}
+                  sx={{ 
+                    borderRadius: 2,
+                    height: '40px',
+                    borderColor: alpha(theme.palette.divider, 0.5)
+                  }}
                 >
                   Clear
                 </Button>
@@ -276,18 +359,36 @@ export default function RepoExplorer() {
           </Paper>
         </Grid>
 
-        {/* file browser */}
+        {/* File Browser */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, height: "100%", display: "flex", flexDirection: "column", background: theme.palette.background.default }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              borderRadius: 3, 
+              height: "100%", 
+              display: "flex", 
+              flexDirection: "column", 
+              background: alpha(theme.palette.background.default, 0.8),
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <FolderIcon />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                <FolderIcon color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Repository Files
                 </Typography>
 
                 {files.length > 0 && (
-                  <Chip label={`${filteredFiles.length}/${files.length} files`} size="small" sx={{ ml: 1 }} />
+                  <Chip 
+                    label={`${filteredFiles.length}/${files.length} files`} 
+                    size="small" 
+                    sx={{ ml: 1 }} 
+                    color="primary"
+                    variant="outlined"
+                  />
                 )}
               </Stack>
 
@@ -297,6 +398,7 @@ export default function RepoExplorer() {
                   checked={allVisibleSelected}
                   onChange={toggleSelectAllVisible}
                   disabled={filteredFiles.length === 0}
+                  color="primary"
                 />
                 <TextField
                   size="small"
@@ -304,63 +406,130 @@ export default function RepoExplorer() {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   sx={{ width: 220 }}
-                  InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1 }} /> }}
+                  InputProps={{ 
+                    startAdornment: <SearchIcon sx={{ mr: 1 }} />,
+                    sx: { borderRadius: 2 }
+                  }}
                 />
                 <Tooltip title="Clear search">
-                  <IconButton size="small" onClick={() => setSearchInput("")}>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setSearchInput("")}
+                    color="inherit"
+                  >
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               </Stack>
             </Stack>
 
-            <Box sx={{ flex: 1, borderRadius: 1, border: `1px solid ${theme.palette.divider}`, overflow: "hidden", background: theme.palette.background.paper }}>
+            <Box 
+              sx={{ 
+                flex: 1, 
+                borderRadius: 2, 
+                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, 
+                overflow: "hidden", 
+                background: theme.palette.background.paper 
+              }}
+            >
               {loading ? (
                 <Box display="flex" justifyContent="center" alignItems="center" height={240}>
-                  <CircularProgress />
+                  <CircularProgress color="primary" />
                 </Box>
               ) : files.length > 0 ? (
                 <Box sx={{ height: { xs: 360, md: 520 }, overflow: "auto" }}>
-                  <FileTree files={filteredFiles} selected={selected} setSelected={setSelected} toggleSelect={toggleSelect} />
+                  <FileTree 
+                    files={filteredFiles} 
+                    selected={selected} 
+                    setSelected={setSelected} 
+                    toggleSelect={toggleSelect} 
+                  />
                 </Box>
               ) : (
-                <Box display="flex" justifyContent="center" alignItems="center" height={240} flexDirection="column" color="text.secondary">
+                <Box 
+                  display="flex" 
+                  justifyContent="center" 
+                  alignItems="center" 
+                  height={240} 
+                  flexDirection="column" 
+                  color="text.secondary"
+                >
                   <FolderIcon fontSize="large" />
-                  <Typography mt={1}>{owner && repo ? "No files found for this branch" : "Enter repository details to explore"}</Typography>
+                  <Typography mt={1} variant="body1">
+                    {owner && repo ? "No files found for this branch" : "Enter repository details to explore"}
+                  </Typography>
                 </Box>
               )}
             </Box>
           </Paper>
         </Grid>
 
-        {/* selected files */}
+        {/* Selected Files */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, height: "100%", display: "flex", flexDirection: "column", background: theme.palette.background.default }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              borderRadius: 3, 
+              height: "100%", 
+              display: "flex", 
+              flexDirection: "column", 
+              background: alpha(theme.palette.background.default, 0.8),
+              border: `1px solid ${alpha(theme.palette.divider, 0.2)}`,
+              backdropFilter: 'blur(8px)'
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <SummarizeIcon />
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Selected Files
+                <SummarizeIcon color="secondary" />
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Selected for Testing
                 </Typography>
-                <Chip label={`${selected.length} selected`} color="primary" size="small" sx={{ ml: 1 }} />
+                <Chip 
+                  label={`${selected.length} selected`} 
+                  color="secondary" 
+                  size="small" 
+                  sx={{ ml: 1 }} 
+                  variant="outlined"
+                />
               </Stack>
 
               <Stack direction="row" spacing={1} alignItems="center">
                 <Tooltip title="Clear selected">
-                  <IconButton size="small" onClick={() => setSelected([])} disabled={selected.length === 0}>
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setSelected([])} 
+                    disabled={selected.length === 0}
+                    color="inherit"
+                  >
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
               </Stack>
             </Stack>
 
-            <Box sx={{ flex: 1, borderRadius: 1, border: `1px solid ${theme.palette.divider}`, overflow: "auto", background: theme.palette.background.paper }}>
+            <Box 
+              sx={{ 
+                flex: 1, 
+                borderRadius: 2, 
+                border: `1px solid ${alpha(theme.palette.divider, 0.2)}`, 
+                overflow: "auto", 
+                background: theme.palette.background.paper 
+              }}
+            >
               {selected.length === 0 ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height={240} flexDirection="column" color="text.secondary">
+                <Box 
+                  display="flex" 
+                  justifyContent="center" 
+                  alignItems="center" 
+                  height={240} 
+                  flexDirection="column" 
+                  color="text.secondary"
+                >
                   <FileIcon fontSize="large" />
-                  <Typography mt={1}>No files selected</Typography>
+                  <Typography mt={1} variant="body1">No files selected</Typography>
                   <Typography variant="body2" sx={{ mt: 1, textAlign: "center", maxWidth: "80%" }}>
-                    Select files from the repository to generate summaries.
+                    Select files from the repository to generate intelligent test cases.
                   </Typography>
                 </Box>
               ) : (
@@ -371,23 +540,51 @@ export default function RepoExplorer() {
                       secondaryAction={
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Tooltip title="Copy path">
-                            <IconButton size="small" onClick={() => copyToClipboard(path)}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => copyToClipboard(path)}
+                              color="inherit"
+                              sx={{
+                                '&:hover': {
+                                  color: theme.palette.primary.main
+                                }
+                              }}
+                            >
                               <ContentCopyIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Remove">
-                            <IconButton size="small" onClick={() => setSelected((s) => s.filter((p) => p !== path))}>
+                            <IconButton 
+                              size="small" 
+                              onClick={() => setSelected((s) => s.filter((p) => p !== path))}
+                              color="inherit"
+                              sx={{
+                                '&:hover': {
+                                  color: theme.palette.error.main
+                                }
+                              }}
+                            >
                               <ClearIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </Stack>
                       }
-                      sx={{ borderBottom: `1px solid ${theme.palette.divider}`, '&:last-child': { borderBottom: 'none' } }}
+                      sx={{ 
+                        borderBottom: `1px solid ${alpha(theme.palette.divider, 0.2)}`, 
+                        '&:last-child': { borderBottom: 'none' },
+                        '&:hover': {
+                          background: alpha(theme.palette.primary.main, 0.05)
+                        }
+                      }}
                     >
                       <ListItemIcon>
-                        <FileIcon fontSize="small" />
+                        <FileIcon fontSize="small" color="primary" />
                       </ListItemIcon>
-                      <ListItemText primary={path.split('/').pop()} secondary={path} secondaryTypographyProps={{ noWrap: true }} />
+                      <ListItemText 
+                        primary={path.split('/').pop()} 
+                        secondary={path} 
+                        secondaryTypographyProps={{ noWrap: true }} 
+                      />
                     </ListItem>
                   ))}
                 </List>
@@ -405,8 +602,18 @@ export default function RepoExplorer() {
                 size="large"
                 fullWidth
                 disabled={selected.length === 0 || loading}
+                sx={{
+                  height: '48px',
+                  borderRadius: 2,
+                  fontSize: '1rem',
+                  background: `linear-gradient(90deg, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+                  boxShadow: `0 4px 15px ${alpha(theme.palette.secondary.main, 0.3)}`,
+                  '&:hover': {
+                    boxShadow: `0 6px 20px ${alpha(theme.palette.secondary.main, 0.4)}`
+                  }
+                }}
               >
-                Generate Summaries
+                Generate Test Cases
               </AnimatedButton>
             </Box>
           </Paper>
@@ -418,6 +625,14 @@ export default function RepoExplorer() {
         onClose={() => setCopySnackOpen(false)}
         autoHideDuration={2200}
         message="Copied to clipboard"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        ContentProps={{
+          sx: {
+            background: theme.palette.mode === 'dark' ? theme.palette.grey[800] : theme.palette.grey[700],
+            color: theme.palette.common.white,
+            borderRadius: 2
+          }
+        }}
       />
     </Paper>
   );
