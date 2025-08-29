@@ -36,7 +36,6 @@ export default function CodePreview() {
   const theme = useTheme();
   const navigate = useNavigate();
   
-  // Safely parse and handle the generated data
   const generatedRaw = JSON.parse(sessionStorage.getItem("tcg_generated") || {});
  let filesToCreate = [];
   try {

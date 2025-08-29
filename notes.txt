@@ -1,0 +1,119 @@
+GitHub API + Git Data Model Explanation
+
+------------------------------------------------------------
+Part 1 – Code Explanation
+------------------------------------------------------------
+
+File 1 – Express Router
+-----------------------
+This file defines API endpoints for interacting with GitHub repositories using Octokit and a stored user access token.
+
+Imports:
+- express → Web framework for creating HTTP routes.
+- authMiddleware → Protects routes, making sure requests come from an authenticated user.
+- listRepoFiles, getFileContent → Service functions for GitHub API operations.
+- User → Mongoose model for retrieving the authenticated user’s details.
+
+GET /files Route:
+- Purpose: Fetches a list of all files in a given GitHub repository.
+- Process:
+  1. Protected by authMiddleware.
+  2. Extracts owner, repo, and branch from query params.
+  3. Finds authenticated user and retrieves GitHub accessToken.
+  4. Calls listRepoFiles to get file details.
+  5. Responds with JSON containing the files.
+
+GET /file Route:
+- Purpose: Fetches the contents of a specific file.
+- Process:
+  1. Auth middleware verifies user.
+  2. Extracts owner, repo, path, and ref from query params.
+  3. Retrieves accessToken from DB.
+  4. Calls getFileContent.
+  5. Responds with file content.
+
+------------------------------------------------------------
+File 2 – GitHub Service
+-----------------------
+Contains functions that talk to GitHub’s API using Octokit.
+
+octokitForToken(token):
+- Creates an Octokit instance authenticated with the token.
+
+listRepoFiles(token, owner, repo, branch = "main"):
+- Purpose: Returns list of files in the repo.
+- Steps:
+  1. Get branch reference → commit SHA.
+  2. Get commit → root tree SHA.
+  3. Get repo tree recursively.
+  4. Filter for type === "blob" (files only).
+  5. Map to { path, sha }.
+
+getFileContent(token, owner, repo, path, ref):
+- Purpose: Gets raw content of a file.
+- Steps:
+  1. Call repos.getContent.
+  2. Decode Base64 to UTF-8.
+  3. Return file content.
+
+------------------------------------------------------------
+Understanding .filter(t => t.type === "blob")
+------------------------------------------------------------
+- Git object types:
+  1. blob → file content
+  2. tree → folder/directory
+  3. commit → submodule reference
+
+Example:
+Tree from GitHub API:
+[
+  { "path": "src/index.js", "type": "blob" },
+  { "path": "src", "type": "tree" },
+  { "path": "README.md", "type": "blob" }
+]
+Filtering for blobs removes directories.
+
+------------------------------------------------------------
+What is "commit" type?
+------------------------------------------------------------
+- Appears for submodules in Git.
+- Submodule = repo inside another repo.
+- "commit" entry stores the commit SHA of the submodule.
+
+Example:
+[
+  { "path": "src/index.js", "type": "blob" },
+  { "path": "docs/readme.md", "type": "blob" },
+  { "path": "vendor", "type": "commit", "sha": "a1b2c3d4..." }
+]
+
+------------------------------------------------------------
+What is SHA?
+------------------------------------------------------------
+- SHA = Secure Hash Algorithm (SHA-1 in Git).
+- 40-character unique hex string identifying a Git object.
+- Types of Git objects:
+  1. commit
+  2. tree
+  3. blob
+  4. tag
+
+Example commit SHA:
+a1b2c3d4e5f67890123456789abcdef123456789
+
+Example blob SHA:
+9b2cf535f277f9b8ed1f22f4cb5cc73b2a2b36f8
+
+Git uses SHA to uniquely reference commits, file versions, and directory structures.
+
+Shortened SHA:
+- Git can use first 7+ characters if unique.
+
+------------------------------------------------------------
+Key Takeaways:
+------------------------------------------------------------
+- blob = file
+- tree = folder
+- commit (in tree) = submodule reference
+- SHA uniquely identifies Git objects
+- GitHub API (Octokit) allows programmatic access to repos

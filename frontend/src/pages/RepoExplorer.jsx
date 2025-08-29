@@ -48,17 +48,13 @@ export default function RepoExplorer() {
   const { token } = useContext(AuthContext);
   const theme = useTheme();
   const navigate = useNavigate();
-
-  // form fields
   const [owner, setOwner] = useState("");
   const [repo, setRepo] = useState("");
   const [branch, setBranch] = useState("main");
 
-  // data
   const [files, setFiles] = useState([]);
   const [selected, setSelected] = useState([]);
 
-  // ui states
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);

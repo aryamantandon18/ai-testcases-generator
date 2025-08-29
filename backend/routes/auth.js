@@ -19,7 +19,8 @@ router.get("/github/callback", async (req, res) => {
       body: JSON.stringify({
         client_id: process.env.GITHUB_CLIENT_ID,
         client_secret: process.env.GITHUB_CLIENT_SECRET,
-        code
+        code,
+        redirect_uri: `${process.env.BACKEND_URL || "http://localhost:4000"}/api/auth/github/callback`
       })
     });
     const tokenJson = await tokenResp.json();
