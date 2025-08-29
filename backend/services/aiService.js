@@ -1,9 +1,5 @@
-// backend/src/services/aiService.js
 import axios from "axios";
-import dotenv from "dotenv";
-dotenv.config();
 
-// Free-tier Gemini model
 const GEMINI_ENDPOINT =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
